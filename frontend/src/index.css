@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  background: white;
+  color: #1f2937; /* Dark gray for light mode */
+}
+
+/* Dark mode improvements */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background: #0a0a0a;
+  color: #f9fafb;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.mapboxgl-popup {
+  max-width: 400px;
+}
+
+.mapboxgl-popup-content {
+  text-align: left;
+  font-family: 'Open Sans', sans-serif;
+}
+
+/* Fix map popup colors in dark mode */
+.dark .mapboxgl-popup-content {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+.dark .mapboxgl-popup-content h3 {
+  color: #f9fafb !important;
+}
+
+.dark .mapboxgl-popup-content p {
+  color: #d1d5db !important;
+}
+
+.dark .mapboxgl-popup-tip {
+  border-top-color: #1f2937 !important;
+}
+
+.dark .mapboxgl-popup-close-button {
+  color: #9ca3af !important;
+}
+
+/* Fullscreen map fixes */
+.mapboxgl-canvas {
+  outline: none;
+}
+
+.mapboxgl-map {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure fullscreen map fills viewport completely */
+.mapboxgl-canvas-container,
+.mapboxgl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Fix for fullscreen container */
+[data-fullscreen="true"] .mapboxgl-map {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}

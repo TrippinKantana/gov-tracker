@@ -1,0 +1,101 @@
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import jwksClient from 'jwks-rsa';
+import type { AppUser } from '../types/app';
+
+const client = jwksClient({
+  jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
+  requestHeaders: {},
+  timeout: 30000,
+});
+
+const getKey = (header: any, callback: any) => {
+  client.getSigningKey(header.kid, (err, key) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+    const signingKey = key?.getPublicKey();
+    callback(null, signingKey);
+  });
+};
+
+export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  jwt.verify(
+    token,
+    getKey,
+    {
+      audience: process.env.AUTH0_AUDIENCE,
+      issuer: `https://${process.env.AUTH0_DOMAIN}/`,
+      algorithms: ['RS256'],
+    },
+    (err, decoded: any) => {
+      if (err) {
+        console.error('Token verification error:', err);
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      // Normalize Auth0 claims to AppUser shape
+      const roles = decoded['https://gov-tracker.com/roles'] || [];
+      const permissions = decoded['https://gov-tracker.com/permissions'] || [];
+      const department = decoded['https://gov-tracker.com/department'];
+      const clearanceLevel = decoded['https://gov-tracker.com/clearance_level'] ?? 1;
+
+      const appUser: AppUser = {
+        id: decoded.sub,
+        email: decoded.email || decoded['https://gov-tracker.com/email'],
+        name: decoded.name || decoded['https://gov-tracker.com/name'] || decoded.email,
+        roles: Array.isArray(roles) ? roles : [],
+        permissions: Array.isArray(permissions) ? permissions : [],
+        department: typeof department === 'string' ? department : undefined,
+        clearanceLevel,
+      };
+
+      req.user = appUser;
+      next();
+    }
+  );
+};
+
+export const requirePermission = (permission: string) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    if (!req.user.permissions?.includes(permission)) {
+      return res.status(403).json({ error: `Permission required: ${permission}` });
+    }
+    next();
+  };
+};
+
+export const requireRole = (role: string) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    if (!req.user.roles?.includes(role)) {
+      return res.status(403).json({ error: `Role required: ${role}` });
+    }
+    next();
+  };
+};
+
+export const requireClearanceLevel = (level: number) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const userLevel = typeof req.user.clearanceLevel === 'number' ? req.user.clearanceLevel : 1;
+    if (userLevel < level) {
+      return res.status(403).json({ error: `Clearance level ${level} required` });
+    }
+    next();
+  };
+};

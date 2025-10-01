@@ -1,0 +1,137 @@
+/**
+ * Government Command Center Styling
+ * Professional operations interface
+ */
+
+/* Command Center Popup Styling */
+.command-center-popup .mapboxgl-popup-content {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.command-center-popup .mapboxgl-popup-tip {
+  border-top-color: #1f2937 !important;
+}
+
+/* Map Container Enhancements */
+.command-center-map {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Professional Grid Overlay */
+.command-center-grid {
+  background-image: 
+    linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+
+/* Scanning Animation */
+@keyframes scan {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.scanning-radar {
+  animation: scan 3s linear infinite;
+}
+
+/* Status Pulse */
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.status-pulse {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+/* Command Button Hover Effects */
+.command-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.command-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.command-button:hover::before {
+  left: 100%;
+}
+
+/* Professional Scrollbar */
+.command-center-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.command-center-scroll::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.command-center-scroll::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 3px;
+}
+
+.command-center-scroll::-webkit-scrollbar-thumb:hover {
+  background: #2563eb;
+}
+
+/* Map Control Enhancements */
+.mapboxgl-ctrl-group {
+  background: rgba(31, 41, 55, 0.95) !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 8px !important;
+}
+
+.mapboxgl-ctrl button {
+  background: transparent !important;
+  color: #ffffff !important;
+}
+
+.mapboxgl-ctrl button:hover {
+  background: rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Professional Typography */
+.command-center-text {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+/* Government Badge */
+.gov-badge {
+  background: linear-gradient(45deg, #1e40af, #3b82f6);
+  border: 1px solid #60a5fa;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+/* Alert Animations */
+@keyframes alert-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+.alert-blink {
+  animation: alert-blink 1s ease-in-out infinite;
+}
+
+/* Command Center Background Pattern */
+.command-center-bg {
+  background: 
+    radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+    linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
