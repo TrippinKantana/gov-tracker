@@ -12,7 +12,7 @@ import {
   TruckIcon,
   ComputerDesktopIcon,
   BuildingOfficeIcon,
-  UsersIcon,
+  CubeIcon,
   XMarkIcon,
   CheckIcon,
   ChevronRightIcon
@@ -30,13 +30,14 @@ interface ReportSelection {
   macName: string;
   facilityId: string;
   facilityName: string;
-  category: 'fleet' | 'assets' | 'facilities' | 'personnel';
+  category: 'fleet' | 'assets' | 'facilities' | 'stock';
   specificItemId: string;
   specificItemName: string;
   reportType: string;
   timeRange: 'this_month' | 'last_month' | 'this_year' | 'last_year' | 'previous_years' | 'custom';
   customStartDate: string;
   customEndDate: string;
+  exportFormat: 'pdf' | 'excel' | 'csv';
 }
 
 const DrillDownReportGenerator = ({ isOpen, onClose }: DrillDownReportGeneratorProps) => {
@@ -366,7 +367,7 @@ const DrillDownReportGenerator = ({ isOpen, onClose }: DrillDownReportGeneratorP
                     { id: 'fleet', label: 'Fleet', icon: TruckIcon, description: 'Individual vehicle reports' },
                     { id: 'assets', label: 'Assets', icon: ComputerDesktopIcon, description: 'Individual equipment reports' },
                     { id: 'facilities', label: 'Facilities', icon: BuildingOfficeIcon, description: 'Individual facility reports' },
-                    { id: 'personnel', label: 'Personnel', icon: UsersIcon, description: 'Individual staff reports' }
+                    { id: 'stock', label: 'Stock', icon: CubeIcon, description: 'Individual stock item reports' }
                   ].map(category => {
                     const IconComponent = category.icon;
                     return (
@@ -445,7 +446,7 @@ const DrillDownReportGenerator = ({ isOpen, onClose }: DrillDownReportGeneratorP
                             {selection.category === 'fleet' && `${item.mileage || 0} km`}
                             {selection.category === 'assets' && item.condition}
                             {selection.category === 'facilities' && `${item.capacity || 0} capacity`}
-                            {selection.category === 'personnel' && item.badgeNumber}
+                            {selection.category === 'stock' && `Qty: ${item.quantity || 0}`}
                           </div>
                         </div>
                       </button>
@@ -537,6 +538,48 @@ const DrillDownReportGenerator = ({ isOpen, onClose }: DrillDownReportGeneratorP
                   </div>
                 )}
 
+                {/* Export Format Selection */}
+                {selection.timeRange && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-3">Export Format</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <button
+                        onClick={() => setSelection(prev => ({ ...prev, exportFormat: 'pdf' }))}
+                        className={`p-3 text-left border-2 rounded-lg transition-colors ${
+                          selection.exportFormat === 'pdf'
+                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-red-300'
+                        }`}
+                      >
+                        <div className="font-medium text-gray-900 dark:text-white">📄 PDF</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Professional layout, print-ready</div>
+                      </button>
+                      <button
+                        onClick={() => setSelection(prev => ({ ...prev, exportFormat: 'excel' }))}
+                        className={`p-3 text-left border-2 rounded-lg transition-colors ${
+                          selection.exportFormat === 'excel'
+                            ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-green-300'
+                        }`}
+                      >
+                        <div className="font-medium text-gray-900 dark:text-white">📊 Excel</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Editable spreadsheet format</div>
+                      </button>
+                      <button
+                        onClick={() => setSelection(prev => ({ ...prev, exportFormat: 'csv' }))}
+                        className={`p-3 text-left border-2 rounded-lg transition-colors ${
+                          selection.exportFormat === 'csv'
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="font-medium text-gray-900 dark:text-white">📋 CSV</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Universal data format</div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Report Summary */}
                 {selection.timeRange && (
                   <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
@@ -546,6 +589,7 @@ const DrillDownReportGenerator = ({ isOpen, onClose }: DrillDownReportGeneratorP
                       <div><strong>Report:</strong> {getReportTypesForCategory(selection.category).find(r => r.id === selection.reportType)?.label}</div>
                       <div><strong>Period:</strong> {selection.timeRange === 'custom' ? `${selection.customStartDate} to ${selection.customEndDate}` : selection.timeRange.replace('_', ' ')}</div>
                       <div><strong>Location:</strong> {selection.macName} {selection.facilityName !== 'All Facilities' ? `→ ${selection.facilityName}` : ''}</div>
+                      <div><strong>Format:</strong> {selection.exportFormat.toUpperCase()} {selection.exportFormat === 'pdf' ? '📄' : selection.exportFormat === 'excel' ? '📊' : '📋'}</div>
                     </div>
                   </div>
                 )}

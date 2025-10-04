@@ -31,7 +31,7 @@ interface StockItemFormData {
   conditionNotes: string;
 }
 
-const AddStockItemModal = ({ isOpen, onClose, onSuccess }: AddStockItemModalProps) => {
+const AddStockItemModal = ({ isOpen, onClose, onSuccess, warehouseSections = [] }: AddStockItemModalProps) => {
   const [formData, setFormData] = useState<StockItemFormData>({
     name: '',
     category: 'Furniture',
@@ -42,7 +42,7 @@ const AddStockItemModal = ({ isOpen, onClose, onSuccess }: AddStockItemModalProp
     receivedDate: new Date().toISOString().split('T')[0],
     expiryDate: '',
     minimumLevel: 10,
-    warehouseLocation: 'Warehouse A - Section 1',
+    warehouseLocation: warehouseSections.length > 0 ? warehouseSections[0].name : 'Warehouse A - Section 1',
     batchNumber: '',
     deliveryNote: '',
     purchaseOrder: '',
@@ -67,18 +67,21 @@ const AddStockItemModal = ({ isOpen, onClose, onSuccess }: AddStockItemModalProp
     'Other'
   ];
 
-  const warehouseLocations = [
-    'Warehouse A - Section 1',
-    'Warehouse A - Section 2', 
-    'Warehouse A - Section 3',
-    'Warehouse B - Electronics Section',
-    'Warehouse B - Furniture Section',
-    'Warehouse C - Heavy Equipment',
-    'Warehouse C - Vehicles Bay',
-    'Cold Storage - Section 1',
-    'Secure Storage - High Value',
-    'Outdoor Storage - Materials'
-  ];
+  // Use warehouse sections from props or fallback to defaults
+  const warehouseLocations = warehouseSections.length > 0 
+    ? warehouseSections.map(section => section.name)
+    : [
+        'Warehouse A - Section 1',
+        'Warehouse A - Section 2', 
+        'Warehouse A - Section 3',
+        'Warehouse B - Electronics Section',
+        'Warehouse B - Furniture Section',
+        'Warehouse C - Heavy Equipment',
+        'Warehouse C - Vehicles Bay',
+        'Cold Storage - Section 1',
+        'Secure Storage - High Value',
+        'Outdoor Storage - Materials'
+      ];
 
   const generateBatchNumber = () => {
     const today = new Date();

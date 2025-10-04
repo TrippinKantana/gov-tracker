@@ -8,6 +8,7 @@ import FleetExportButton from './FleetExportButton';
 import { generateGSACode, parseGSACode, validateGSACode, getMACCode, getVehicleClassCode, checkGSACodeExists } from '../utils/gsaCodeGenerator';
 import { useAuth } from '../contexts/AuthContext';
 import { isDepartmentAdmin, hasValidMACAssignment } from '../utils/departmentFilter';
+import { gpsTrackingService } from '../services/gpsTrackingService';
 
 interface ViewVehicleModalProps {
     isOpen: boolean;
@@ -69,12 +70,23 @@ const ViewVehicleModal = ({ isOpen, onClose, vehicleId, onTrack, onEdit, onDelet
     const [error, setError] = useState<string>('');
     const [editingGSACode, setEditingGSACode] = useState(false);
     const [manualCount, setManualCount] = useState('');
+    
+    // Usage statistics from GPS tracking
+    const [usageStats, setUsageStats] = useState<any>(null);
+    const [statsLoading, setStatsLoading] = useState(false);
 
     useEffect(() => {
         if (isOpen && vehicleId) {
             fetchVehicleDetails();
         }
     }, [isOpen, vehicleId]);
+    
+    // Fetch usage statistics when statistics tab is opened
+    useEffect(() => {
+        if (activeTab === 'statistics' && vehicleId) {
+            fetchUsageStatistics();
+        }
+    }, [activeTab, vehicleId]);
 
     const fetchVehicleDetails = async () => {
         if (!vehicleId) return;
@@ -121,6 +133,78 @@ const ViewVehicleModal = ({ isOpen, onClose, vehicleId, onTrack, onEdit, onDelet
         } finally {
             setIsLoading(false);
         }
+    };
+    
+    const fetchUsageStatistics = async () => {
+        if (!vehicleId) return;
+        
+        setStatsLoading(true);
+        try {
+            // Get today's date range
+            const startOfDay = new Date();
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date();
+            
+            // Fetch GPS tracking history for today
+            const history = await gpsTrackingService.getTrackingHistory(
+                vehicleId,
+                startOfDay,
+                endOfDay
+            );
+            
+            if (history) {
+                // Calculate statistics from GPS data
+                const stats = {
+                    todayKm: history.totalDistance || 0,
+                    avgSpeed: history.avgSpeed || 0,
+                    maxSpeed: history.maxSpeed || 0,
+                    movingHours: (history.movingDuration || 0) / 60,
+                    idleHours: (history.stoppedDuration || 0) / 60,
+                    mostActiveWindow: calculateMostActiveTime(history.points || []),
+                    fuelEfficiency: 'N/A' // Requires fuel data
+                };
+                
+                setUsageStats(stats);
+            }
+        } catch (error) {
+            console.error('Error fetching usage statistics:', error);
+            setUsageStats(null);
+        } finally {
+            setStatsLoading(false);
+        }
+    };
+    
+    const calculateMostActiveTime = (points: any[]) => {
+        if (!points || points.length < 2) return 'N/A';
+        
+        // Build histogram of active hours
+        const hourlyActivity: Record<number, number> = {};
+        
+        for (let i = 1; i < points.length; i++) {
+            const prevPoint = points[i - 1];
+            const currPoint = points[i];
+            
+            // Consider moving if speed >= 5 km/h
+            if (currPoint.speed >= 5) {
+                const hour = new Date(currPoint.timestamp).getHours();
+                const duration = (new Date(currPoint.timestamp).getTime() - new Date(prevPoint.timestamp).getTime()) / 1000 / 60; // minutes
+                hourlyActivity[hour] = (hourlyActivity[hour] || 0) + duration;
+            }
+        }
+        
+        // Find most active hour range
+        const sortedHours = Object.entries(hourlyActivity)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 3)
+            .map(([hour]) => parseInt(hour))
+            .sort((a, b) => a - b);
+        
+        if (sortedHours.length === 0) return 'N/A';
+        
+        const start = Math.min(...sortedHours);
+        const end = Math.max(...sortedHours) + 1;
+        
+        return `${start}:00 ${start < 12 ? 'AM' : 'PM'} - ${end}:00 ${end < 12 ? 'AM' : 'PM'}`;
     };
 
     const getStatusColor = (status: string) => {
@@ -575,68 +659,87 @@ const ViewVehicleModal = ({ isOpen, onClose, vehicleId, onTrack, onEdit, onDelet
                                                 {/* Mileage Statistics */}
                                                 <div>
                                                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Mileage & Usage Statistics</h3>
-                                                    <div className="grid grid-cols-4 gap-4">
-                                                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
-                                                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                                                {vehicle.mileage?.toLocaleString() || '0'}
-                                                            </p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">Total km</p>
+                                                    {statsLoading ? (
+                                                        <div className="text-center py-8">
+                                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                                            <p className="text-sm text-gray-500 mt-2">Loading statistics...</p>
                                                         </div>
-                                                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
-                                                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">125</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">km Today</p>
+                                                    ) : (
+                                                        <div className="grid grid-cols-4 gap-4">
+                                                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
+                                                                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                                                    {vehicle.mileage?.toLocaleString() || '0'}
+                                                                </p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-400">Total km</p>
+                                                            </div>
+                                                            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
+                                                                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                                                    {usageStats ? usageStats.todayKm.toFixed(1) : '--'}
+                                                                </p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-400">km Today</p>
+                                                            </div>
+                                                            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
+                                                                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                                                    {usageStats?.fuelEfficiency || 'N/A'}
+                                                                </p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-400">L/100km</p>
+                                                            </div>
+                                                            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 text-center">
+                                                                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                                                                    {usageStats ? Math.round(usageStats.avgSpeed) : '--'}
+                                                                </p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-400">km/h Avg</p>
+                                                            </div>
                                                         </div>
-                                                        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
-                                                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">8.5</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">L/100km</p>
-                                                        </div>
-                                                        <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 text-center">
-                                                            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">42</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">km/h Avg</p>
-                                                        </div>
-                                                    </div>
+                                                    )}
                                                 </div>
 
                                                 {/* Usage Patterns */}
                                                 <div>
-                                                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Usage Patterns</h3>
+                                                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Usage Patterns (Today)</h3>
                                                     <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
-                                                        <div className="grid grid-cols-2 gap-6">
-                                                            <div className="space-y-3">
-                                                                <h4 className="font-medium text-gray-900 dark:text-white">Daily Usage</h4>
-                                                                <div className="space-y-2">
-                                                                    <div className="flex justify-between">
-                                                                        <span className="text-gray-600 dark:text-gray-400">Most active time:</span>
-                                                                        <span className="text-gray-900 dark:text-white">9:00 AM - 5:00 PM</span>
+                                                        {statsLoading ? (
+                                                            <div className="text-center py-4 text-gray-500">Loading usage patterns...</div>
+                                                        ) : !usageStats ? (
+                                                            <div className="text-center py-4 text-gray-500">No GPS tracking data available for today</div>
+                                                        ) : (
+                                                            <div className="grid grid-cols-2 gap-6">
+                                                                <div className="space-y-3">
+                                                                    <h4 className="font-medium text-gray-900 dark:text-white">Daily Usage</h4>
+                                                                    <div className="space-y-2">
+                                                                        <div className="flex justify-between">
+                                                                            <span className="text-gray-600 dark:text-gray-400">Most active time:</span>
+                                                                            <span className="text-gray-900 dark:text-white">{usageStats.mostActiveWindow}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span className="text-gray-600 dark:text-gray-400">Moving time:</span>
+                                                                            <span className="text-gray-900 dark:text-white">{usageStats.movingHours.toFixed(1)} hours</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span className="text-gray-600 dark:text-gray-400">Idle time:</span>
+                                                                            <span className="text-gray-900 dark:text-white">{usageStats.idleHours.toFixed(1)} hours</span>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="flex justify-between">
-                                                                        <span className="text-gray-600 dark:text-gray-400">Average daily usage:</span>
-                                                                        <span className="text-gray-900 dark:text-white">6.5 hours</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between">
-                                                                        <span className="text-gray-600 dark:text-gray-400">Idle time:</span>
-                                                                        <span className="text-gray-900 dark:text-white">1.5 hours</span>
+                                                                </div>
+                                                                <div className="space-y-3">
+                                                                    <h4 className="font-medium text-gray-900 dark:text-white">Performance</h4>
+                                                                    <div className="space-y-2">
+                                                                        <div className="flex justify-between">
+                                                                            <span className="text-gray-600 dark:text-gray-400">Max speed:</span>
+                                                                            <span className="text-gray-900 dark:text-white">{Math.round(usageStats.maxSpeed)} km/h</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span className="text-gray-600 dark:text-gray-400">Distance covered:</span>
+                                                                            <span className="text-gray-900 dark:text-white">{usageStats.todayKm.toFixed(1)} km</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span className="text-gray-600 dark:text-gray-400">GPS tracking:</span>
+                                                                            <span className="text-green-600 dark:text-green-400">✓ Active</span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="space-y-3">
-                                                                <h4 className="font-medium text-gray-900 dark:text-white">Performance</h4>
-                                                                <div className="space-y-2">
-                                                                    <div className="flex justify-between">
-                                                                        <span className="text-gray-600 dark:text-gray-400">Fuel efficiency trend:</span>
-                                                                        <span className="text-green-600 dark:text-green-400">↗️ Improving</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between">
-                                                                        <span className="text-gray-600 dark:text-gray-400">Speed compliance:</span>
-                                                                        <span className="text-green-600 dark:text-green-400">98%</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between">
-                                                                        <span className="text-gray-600 dark:text-gray-400">Geo-fence compliance:</span>
-                                                                        <span className="text-green-600 dark:text-green-400">100%</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

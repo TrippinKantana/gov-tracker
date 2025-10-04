@@ -12,7 +12,7 @@ import {
   TruckIcon,
   ComputerDesktopIcon,
   BuildingOfficeIcon,
-  UsersIcon,
+  CubeIcon,
   XMarkIcon,
   CheckIcon
 } from '@heroicons/react/24/outline';
@@ -27,12 +27,13 @@ interface ReportGeneratorProps {
 interface ReportFilters {
   macId: string;
   facilityId: string;
-  reportType: 'fleet' | 'assets' | 'facilities' | 'personnel' | 'all';
+  reportType: 'fleet' | 'assets' | 'facilities' | 'stock' | 'all';
   reportPeriod: 'current_month' | 'last_month' | 'ytd' | 'last_year' | 'custom' | 'previous_years';
   customStartDate: string;
   customEndDate: string;
   reportMode: 'full' | 'filtered';
   includeInactive: boolean;
+  exportFormat: 'pdf' | 'excel' | 'csv';
 }
 
 const ReportGenerator = ({ isOpen, onClose }: ReportGeneratorProps) => {
@@ -242,7 +243,11 @@ const ReportGenerator = ({ isOpen, onClose }: ReportGeneratorProps) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${filters.reportType}-report-${dateRange.label.replace(/\s+/g, '-')}.pdf`;
+        
+        // Determine file extension based on format
+        const extension = filters.exportFormat === 'excel' ? 'xlsx' : filters.exportFormat === 'csv' ? 'csv' : 'pdf';
+        a.download = `${filters.reportType}-report-${dateRange.label.replace(/\s+/g, '-')}.${extension}`;
+        
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -276,7 +281,7 @@ const ReportGenerator = ({ isOpen, onClose }: ReportGeneratorProps) => {
       case 'fleet': return <TruckIcon className="h-5 w-5" />;
       case 'assets': return <ComputerDesktopIcon className="h-5 w-5" />;
       case 'facilities': return <BuildingOfficeIcon className="h-5 w-5" />;
-      case 'personnel': return <UsersIcon className="h-5 w-5" />;
+      case 'stock': return <CubeIcon className="h-5 w-5" />;
       default: return <ClipboardDocumentListIcon className="h-5 w-5" />;
     }
   };
@@ -436,7 +441,7 @@ const ReportGenerator = ({ isOpen, onClose }: ReportGeneratorProps) => {
                     { id: 'fleet', label: 'Fleet Report', icon: TruckIcon, description: 'Vehicle details, maintenance, usage' },
                     { id: 'assets', label: 'Assets Report', icon: ComputerDesktopIcon, description: 'Equipment inventory, condition, assignments' },
                     { id: 'facilities', label: 'Facilities Report', icon: BuildingOfficeIcon, description: 'Building details, capacity, equipment' },
-                    { id: 'personnel', label: 'Personnel Report', icon: UsersIcon, description: 'Staff details, roles, assignments' },
+                    { id: 'stock', label: 'Stock Inventory', icon: CubeIcon, description: 'Stock levels, procurement, distribution' },
                     { id: 'all', label: 'Comprehensive Report', icon: ClipboardDocumentListIcon, description: 'All categories combined' }
                   ].map(type => {
                     const IconComponent = type.icon;
@@ -552,6 +557,46 @@ const ReportGenerator = ({ isOpen, onClose }: ReportGeneratorProps) => {
                     >
                       <div className="font-medium text-gray-900 dark:text-white">Full Report</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">All available data</div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Export Format Selection */}
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">Export Format</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button
+                      onClick={() => setFilters(prev => ({ ...prev, exportFormat: 'pdf' }))}
+                      className={`p-3 text-left border-2 rounded-lg transition-colors ${
+                        filters.exportFormat === 'pdf'
+                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-red-300'
+                      }`}
+                    >
+                      <div className="font-medium text-gray-900 dark:text-white">📄 PDF</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Professional layout, print-ready</div>
+                    </button>
+                    <button
+                      onClick={() => setFilters(prev => ({ ...prev, exportFormat: 'excel' }))}
+                      className={`p-3 text-left border-2 rounded-lg transition-colors ${
+                        filters.exportFormat === 'excel'
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-green-300'
+                      }`}
+                    >
+                      <div className="font-medium text-gray-900 dark:text-white">📊 Excel</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Editable spreadsheet format</div>
+                    </button>
+                    <button
+                      onClick={() => setFilters(prev => ({ ...prev, exportFormat: 'csv' }))}
+                      className={`p-3 text-left border-2 rounded-lg transition-colors ${
+                        filters.exportFormat === 'csv'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                      }`}
+                    >
+                      <div className="font-medium text-gray-900 dark:text-white">📋 CSV</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Universal data format</div>
                     </button>
                   </div>
                 </div>

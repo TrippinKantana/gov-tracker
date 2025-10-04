@@ -54,8 +54,8 @@ class ReportGenerator {
       case 'facilities':
         await this.generateFacilitiesReport(doc, filters);
         break;
-      case 'personnel':
-        await this.generatePersonnelReport(doc, filters);
+      case 'stock':
+        await this.generateStockReport(doc, filters);
         break;
       case 'all':
         await this.generateComprehensiveReport(doc, filters);
@@ -258,43 +258,81 @@ class ReportGenerator {
   }
 
   /**
-   * Generate Personnel Report
+   * Generate Stock Inventory Report
    */
-  async generatePersonnelReport(doc, filters) {
+  async generateStockReport(doc, filters) {
     let currentY = 290;
     
     doc.fontSize(14)
-       .text('PERSONNEL REPORT', 50, currentY);
+       .text('STOCK INVENTORY REPORT', 50, currentY);
     
     currentY += 30;
 
-    // Get real personnel data from API
-    const personnelData = await this.fetchPersonnelData(filters);
+    // Get real stock data from API
+    const stockData = await this.fetchStockData(filters);
     
-    if (personnelData.length === 0) {
+    if (stockData.length === 0) {
       doc.fontSize(12)
-         .text('No personnel data available for the selected criteria.', 50, currentY);
+         .text('No stock data available for the selected criteria.', 50, currentY);
       return;
     }
 
-    // Personnel summary
-    const activeCount = personnelData.filter(p => p.status === 'active').length;
-    const onLeaveCount = personnelData.filter(p => p.status === 'on_leave').length;
+    // Table headers
+    const headers = ['Item Name', 'SKU', 'Category', 'Quantity', 'Unit', 'Location'];
+    const columnWidths = [120, 80, 80, 60, 60, 120];
+    let startX = 50;
+
+    // Draw headers
+    doc.fontSize(10);
+    headers.forEach((header, index) => {
+      doc.text(header, startX, currentY, { width: columnWidths[index], align: 'center' });
+      startX += columnWidths[index];
+    });
+
+    currentY += 20;
+    
+    // Draw header line
+    doc.moveTo(50, currentY)
+       .lineTo(530, currentY)
+       .stroke();
+
+    currentY += 10;
+
+    // Draw stock data
+    stockData.forEach(item => {
+      startX = 50;
+      const itemData = [
+        item.name || 'N/A',
+        item.sku || item.id,
+        item.category || 'General',
+        (item.quantity || 0).toString(),
+        item.unit || 'pcs',
+        item.location || filters.macName || 'N/A'
+      ];
+
+      itemData.forEach((data, index) => {
+        doc.text(data, startX, currentY, { width: columnWidths[index], align: 'center' });
+        startX += columnWidths[index];
+      });
+
+      currentY += 20;
+      
+      // Check for page break
+      if (currentY > 700) {
+        doc.addPage();
+        currentY = 50;
+      }
+    });
+
+    // Summary
+    currentY += 20;
+    const totalQuantity = stockData.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const lowStockItems = stockData.filter(item => (item.quantity || 0) < (item.minimumLevel || 10));
     
     doc.fontSize(12)
-       .text(`Total Personnel: ${personnelData.length}`, 50, currentY)
-       .text(`Active: ${activeCount}`, 50, currentY + 15)
-       .text(`On Leave: ${onLeaveCount}`, 50, currentY + 30);
-
-    currentY += 60;
-
-    // Personnel by clearance level
-    const clearanceLevels = [...new Set(personnelData.map(p => p.clearanceLevel))];
-    clearanceLevels.forEach(level => {
-      const levelCount = personnelData.filter(p => p.clearanceLevel === level).length;
-      doc.text(`${level.replace('_', ' ').toUpperCase()}: ${levelCount}`, 50, currentY);
-      currentY += 15;
-    });
+       .text(`Total Items: ${stockData.length}`, 50, currentY)
+       .text(`Total Quantity: ${totalQuantity}`, 50, currentY + 15)
+       .text(`Low Stock Items: ${lowStockItems.length}`, 50, currentY + 30);
   }
 
   /**
@@ -307,7 +345,7 @@ class ReportGenerator {
     doc.addPage();
     await this.generateFacilitiesReport(doc, filters);
     doc.addPage();
-    await this.generatePersonnelReport(doc, filters);
+    await this.generateStockReport(doc, filters);
   }
 
   /**
@@ -318,7 +356,7 @@ class ReportGenerator {
       case 'fleet': return 'FLEET';
       case 'assets': return 'ASSETS';
       case 'facilities': return 'FACILITIES';
-      case 'personnel': return 'PERSONNEL';
+      case 'stock': return 'STOCK INVENTORY';
       case 'all': return 'COMPREHENSIVE';
       default: return 'GOVERNMENT';
     }
@@ -408,27 +446,27 @@ class ReportGenerator {
   }
 
   /**
-   * Fetch real personnel data from API
+   * Fetch real stock data from API
    */
-  async fetchPersonnelData(filters) {
+  async fetchStockData(filters) {
     try {
       const fetch = require('node-fetch');
-      const response = await fetch('http://localhost:5000/api/personnel');
+      const response = await fetch('http://localhost:5000/api/stock/inventory');
       const result = await response.json();
       
-      if (result.success && result.personnel) {
-        let personnel = result.personnel;
+      if (result.success && result.stock) {
+        let stock = result.stock;
         
-        // Filter by MAC if specified
+        // Filter by MAC/department if specified
         if (filters.macName) {
-          personnel = personnel.filter(p => p.department === filters.macName);
+          stock = stock.filter(s => s.department === filters.macName || s.location === filters.macName);
         }
         
-        return personnel;
+        return stock;
       }
       return [];
     } catch (error) {
-      console.error('Error fetching personnel data:', error);
+      console.error('Error fetching stock data:', error);
       return [];
     }
   }

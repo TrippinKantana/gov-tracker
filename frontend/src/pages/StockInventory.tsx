@@ -687,6 +687,7 @@ const StockInventory = () => {
           setStockItems(prev => [newStockItem, ...prev]);
           setIsAddStockModalOpen(false);
         }}
+        warehouseSections={warehouseSections}
       />
 
       <GoodsReleaseModal

@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { XMarkIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline';
-import { generateAssetGSACode, EQUIPMENT_CLASS_CODES, getMACCode } from '../utils/gsaCodeGenerator';
+import { EQUIPMENT_CLASS_CODES } from '../utils/gsaCodeGenerator';
 
 interface AddEquipmentModalProps {
     isOpen: boolean;
@@ -59,7 +59,6 @@ interface EquipmentFormData {
 
 const AddEquipmentModal = ({ isOpen, onClose, onSuccess }: AddEquipmentModalProps) => {
     const [equipmentClass, setEquipmentClass] = useState<string>('Computer');
-    const [generatedGSACode, setGeneratedGSACode] = useState<string>('');
     const [formData, setFormData] = useState<EquipmentFormData>({
         // MAC Assignment
         department: '',
@@ -108,23 +107,6 @@ const AddEquipmentModal = ({ isOpen, onClose, onSuccess }: AddEquipmentModalProp
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [availableMACs, setAvailableMACs] = useState<any[]>([]);
 
-    // Get recommended maintenance interval based on equipment class
-    const getMaintenanceInterval = (equipmentClass: string): number => {
-        const intervals = {
-            'Computer': 12,              // Annual maintenance
-            'Printer': 6,                // Semi-annual (high usage)
-            'Server': 3,                 // Quarterly (critical)
-            'Network Equipment': 6,      // Semi-annual
-            'Audio Visual': 6,           // Semi-annual calibration
-            'Medical Equipment': 3,      // Quarterly (regulatory)
-            'Laboratory Equipment': 3,   // Quarterly calibration  
-            'Communication Equipment': 6,// Semi-annual
-            'Security Equipment': 3,     // Quarterly (critical)
-            'Other Equipment': 12        // Annual default
-        };
-        return intervals[equipmentClass as keyof typeof intervals] || 12;
-    };
-
     // Load real MACs from API
     useEffect(() => {
         const loadMACs = async () => {
@@ -147,28 +129,7 @@ const AddEquipmentModal = ({ isOpen, onClose, onSuccess }: AddEquipmentModalProp
         }
     }, [isOpen]);
 
-    // Generate GSA code when MAC or equipment class changes
-    useEffect(() => {
-        const generateGSACodeForEquipment = async () => {
-            if (formData.department && equipmentClass) {
-                try {
-                    const gsaCode = await generateAssetGSACode(formData.department, 'equipment', equipmentClass);
-                    setGeneratedGSACode(gsaCode);
-                    setFormData(prev => ({ ...prev, gsaCode }));
-                } catch (error) {
-                    console.error('Error generating GSA code:', error);
-                }
-            }
-        };
 
-        generateGSACodeForEquipment();
-    }, [formData.department, equipmentClass]);
-
-    // Update maintenance interval when equipment class changes
-    useEffect(() => {
-        const recommendedInterval = getMaintenanceInterval(equipmentClass);
-        setFormData(prev => ({ ...prev, maintenanceInterval: recommendedInterval }));
-    }, [equipmentClass]);
 
     const handleMACChange = (macId: string) => {
         const selectedMAC = availableMACs.find(d => d.id === macId);
@@ -187,8 +148,8 @@ const AddEquipmentModal = ({ isOpen, onClose, onSuccess }: AddEquipmentModalProp
         // Required fields validation
         if (!formData.name.trim()) newErrors.name = 'Equipment name is required';
         if (!formData.serialNumber.trim()) newErrors.serialNumber = 'Serial number is required';
+        if (!formData.gsaCode.trim()) newErrors.gsaCode = 'GSA code is required';
         if (!formData.brand.trim()) newErrors.brand = 'Brand is required';
-        if (!formData.model.trim()) newErrors.model = 'Model is required';
         if (!formData.departmentId) newErrors.department = 'MAC is required';
         if (!formData.entryDate) newErrors.entryDate = 'Data entry date is required';
         if (!formData.enteredBy.trim()) newErrors.enteredBy = 'Entered by is required';
@@ -263,8 +224,6 @@ const AddEquipmentModal = ({ isOpen, onClose, onSuccess }: AddEquipmentModalProp
             notes: ''
         });
         setErrors({});
-        setEquipmentClass('Computer');
-        setGeneratedGSACode('');
     };
 
     const handleClose = () => {
@@ -355,24 +314,25 @@ const AddEquipmentModal = ({ isOpen, onClose, onSuccess }: AddEquipmentModalProp
                                                 ))}
                                             </select>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                Determines GSA code classification
+                                                Equipment classification type
                                             </p>
                                         </div>
 
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                GSA Code (Auto-Generated)
+                                                GSA Code *
                                             </label>
                                             <input
                                                 type="text"
-                                                value={generatedGSACode}
-                                                disabled
-                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-mono text-lg"
-                                                placeholder="Select MAC and Equipment Class to generate"
+                                                value={formData.gsaCode}
+                                                onChange={(e) => setFormData({ ...formData, gsaCode: e.target.value.toUpperCase() })}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-600 dark:text-white font-mono text-lg"
+                                                placeholder="Enter GSA code manually"
                                             />
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                Format: GSA-{getMACCode(formData.department) || 'MAC'}-{EQUIPMENT_CLASS_CODES[equipmentClass as keyof typeof EQUIPMENT_CLASS_CODES] || '01'}-Count
+                                                Enter the official GSA asset code (complex format)
                                             </p>
+                                            {errors.gsaCode && <p className="text-red-500 text-xs mt-1">{errors.gsaCode}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -415,16 +375,15 @@ const AddEquipmentModal = ({ isOpen, onClose, onSuccess }: AddEquipmentModalProp
 
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Model *
+                                                Model
                                             </label>
                                             <input
                                                 type="text"
                                                 value={formData.model}
                                                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-600 dark:text-white"
-                                                placeholder="e.g., Latitude 5520, LaserJet Pro"
+                                                placeholder="e.g., Latitude 5520, LaserJet Pro (optional)"
                                             />
-                                            {errors.model && <p className="text-red-500 text-xs mt-1">{errors.model}</p>}
                                         </div>
 
                                         <div>

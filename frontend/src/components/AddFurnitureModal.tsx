@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { XMarkIcon, RectangleGroupIcon } from '@heroicons/react/24/outline';
-import { generateAssetGSACode, FURNITURE_CLASS_CODES, getMACCode } from '../utils/gsaCodeGenerator';
+import { FURNITURE_CLASS_CODES } from '../utils/gsaCodeGenerator';
 
 interface AddFurnitureModalProps {
   isOpen: boolean;
@@ -126,22 +126,7 @@ const AddFurnitureModal = ({ isOpen, onClose, onSuccess }: AddFurnitureModalProp
     }
   }, [isOpen]);
 
-  // Generate GSA code when MAC or furniture class changes
-  useEffect(() => {
-    const generateGSACodeForFurniture = async () => {
-      if (formData.department && furnitureClass) {
-        try {
-          const gsaCode = await generateAssetGSACode(formData.department, 'furniture', furnitureClass);
-          setGeneratedGSACode(gsaCode);
-          setFormData(prev => ({ ...prev, gsaCode }));
-        } catch (error) {
-          console.error('Error generating GSA code:', error);
-        }
-      }
-    };
 
-    generateGSACodeForFurniture();
-  }, [formData.department, furnitureClass]);
 
   const handleMACChange = (macId: string) => {
     const selectedMAC = availableMACs.find(d => d.id === macId);
@@ -159,6 +144,7 @@ const AddFurnitureModal = ({ isOpen, onClose, onSuccess }: AddFurnitureModalProp
 
     // Required fields validation
     if (!formData.name.trim()) newErrors.name = 'Furniture name is required';
+    if (!formData.gsaCode.trim()) newErrors.gsaCode = 'GSA code is required';
     if (!formData.brand.trim()) newErrors.brand = 'Brand is required';
     if (!formData.departmentId) newErrors.department = 'MAC is required';
     if (!formData.entryDate) newErrors.entryDate = 'Data entry date is required';
@@ -232,8 +218,6 @@ const AddFurnitureModal = ({ isOpen, onClose, onSuccess }: AddFurnitureModalProp
       notes: ''
     });
     setErrors({});
-    setFurnitureClass('Desk');
-    setGeneratedGSACode('');
   };
 
   const handleClose = () => {
@@ -324,24 +308,25 @@ const AddFurnitureModal = ({ isOpen, onClose, onSuccess }: AddFurnitureModalProp
                         ))}
                       </select>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Determines GSA code classification
+                        Furniture classification type
                       </p>
                     </div>
                     
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        GSA Code (Auto-Generated)
+                        GSA Code *
                       </label>
                       <input
                         type="text"
-                        value={generatedGSACode}
-                        disabled
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-mono text-lg"
-                        placeholder="Select MAC and Furniture Class to generate"
+                        value={formData.gsaCode}
+                        onChange={(e) => setFormData({ ...formData, gsaCode: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-600 dark:text-white font-mono text-lg"
+                        placeholder="Enter GSA code manually"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Format: GSA-{getMACCode(formData.department) || 'MAC'}-{FURNITURE_CLASS_CODES[furnitureClass as keyof typeof FURNITURE_CLASS_CODES] || '01'}-Count
+                        Enter the official GSA asset code (complex format)
                       </p>
+                      {errors.gsaCode && <p className="text-red-500 text-xs mt-1">{errors.gsaCode}</p>}
                     </div>
                   </div>
                 </div>
