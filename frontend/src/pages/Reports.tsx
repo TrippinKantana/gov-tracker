@@ -54,16 +54,21 @@ const Reports = () => {
         try {
             console.log('📄 Viewing report:', report.filename);
 
-            // Re-generate and download the report
+            // Re-generate and download the report with correct format
             const reportRequest = {
                 reportType: report.type.includes('-') ? report.type.split('-')[1] : report.type,
                 macName: report.macName,
                 facilityName: report.facilityName,
-                period: report.period,
-                generatedBy: user?.name || user?.email
+                dateRange: {
+                    label: report.period
+                },
+                generatedBy: user?.name || user?.email,
+                generatedAt: new Date().toISOString()
             };
 
             const endpoint = report.id.startsWith('DRILL-') ? '/api/reports/drill-down' : '/api/reports/generate';
+
+            console.log('🎨 Re-generating beautiful report with request:', reportRequest);
 
             const response = await fetch(endpoint, {
                 method: 'POST',
@@ -84,9 +89,11 @@ const Reports = () => {
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
 
-                console.log('✅ Report re-downloaded successfully');
+                console.log('✅ Beautiful report re-downloaded successfully');
             } else {
-                throw new Error('Failed to re-generate report');
+                const errorText = await response.text();
+                console.error('❌ Server error:', response.status, errorText);
+                throw new Error(`Failed to re-generate report: ${response.status}`);
             }
         } catch (error) {
             console.error('❌ Error viewing report:', error);

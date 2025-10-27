@@ -339,15 +339,15 @@ const StockInventory = () => {
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Quantity:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{item.quantity.toLocaleString()}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{(item.quantity || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Unit Cost:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">${item.unitCost.toFixed(2)}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">${(item.unitCost || 0).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Total Value:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">${item.totalValue.toLocaleString()}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">${(item.totalValue || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Location:</span>
@@ -525,16 +525,16 @@ const StockInventory = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Capacity:</span>
-                      <span className="text-gray-900 dark:text-white">{section.capacity.toLocaleString()} units</span>
+                      <span className="text-gray-900 dark:text-white">{(section.capacity || 0).toLocaleString()} units</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Current Stock:</span>
-                      <span className="text-gray-900 dark:text-white">{section.currentStock.toLocaleString()} units</span>
+                      <span className="text-gray-900 dark:text-white">{(section.currentStock || 0).toLocaleString()} units</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Utilization:</span>
                       <span className="text-gray-900 dark:text-white">
-                        {Math.round((section.currentStock / section.capacity) * 100)}%
+                        {Math.round(((section.currentStock || 0) / (section.capacity || 1)) * 100)}%
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -548,10 +548,10 @@ const StockInventory = () => {
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div 
                         className={`h-2 rounded-full ${
-                          (section.currentStock / section.capacity) > 0.8 ? 'bg-red-500' :
-                          (section.currentStock / section.capacity) > 0.6 ? 'bg-yellow-500' : 'bg-green-500'
+                          ((section.currentStock || 0) / (section.capacity || 1)) > 0.8 ? 'bg-red-500' :
+                          ((section.currentStock || 0) / (section.capacity || 1)) > 0.6 ? 'bg-yellow-500' : 'bg-green-500'
                         }`}
-                        style={{ width: `${Math.min((section.currentStock / section.capacity) * 100, 100)}%` }}
+                        style={{ width: `${Math.min(((section.currentStock || 0) / (section.capacity || 1)) * 100, 100)}%` }}
                       />
                     </div>
                   </div>

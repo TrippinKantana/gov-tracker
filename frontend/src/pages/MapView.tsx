@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import Map, { Marker, Popup, NavigationControl, FullscreenControl, ScaleControl } from 'react-map-gl';
 import { ArrowsPointingOutIcon, MapPinIcon, FunnelIcon, MagnifyingGlassIcon, TruckIcon, BuildingOfficeIcon, ComputerDesktopIcon, GlobeAltIcon, CubeIcon, ExclamationTriangleIcon, ShieldCheckIcon, RadioIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
@@ -186,7 +187,7 @@ const MapView = () => {
             details: {
               licensePlate: vehicle.plateNumber,
               fuelLevel: vehicle.fuelLevel,
-              gpsTracker: vehicle.gpsTrackerId
+              gpsTracker: vehicle.gpsTracker // Tracked by GPS handler
             }
           });
           
@@ -292,6 +293,54 @@ const MapView = () => {
     window.addEventListener('refreshAllAssets', handleGlobalRefresh);
     return () => {
       window.removeEventListener('refreshAllAssets', handleGlobalRefresh);
+    };
+  }, []);
+
+  // Listen for real-time GPS position updates
+  useEffect(() => {
+    console.log('🛰️ Setting up real-time GPS tracking on map...');
+    const socket = io('http://localhost:5000');
+    
+    // Listen for GPS position updates
+    socket.on('gps:position', (data) => {
+      console.log('📍 GPS position update received on map:', data);
+      
+      // Find the vehicle in assets and update its coordinates
+      setAssets(prevAssets => {
+        return prevAssets.map(asset => {
+          if (asset.type === 'vehicle' && asset.details.gpsTracker && 
+              asset.id === data.vehicleId) {
+            console.log(`✅ Updating vehicle ${asset.name} to GPS coordinates: ${data.latitude}, ${data.longitude}`);
+            return {
+              ...asset,
+              coordinates: [data.longitude, data.latitude], // [lng, lat] for mapbox
+              lastUpdate: data.timestamp,
+              details: {
+                ...asset.details,
+                batteryLevel: data.batteryLevel,
+                signalStrength: data.signalStrength
+              }
+            };
+          }
+          return asset;
+        });
+      });
+    });
+    
+    // Listen for GPS alarms
+    socket.on('gps:alarm', (alarm) => {
+      console.log('🚨 GPS Alarm received on map:', alarm);
+      showMapNotification('warning', 'GPS Alarm', `Vehicle ${alarm.vehicleId}: ${alarm.message || 'Alarm triggered'}`);
+    });
+    
+    // Listen for device heartbeat
+    socket.on('gps:heartbeat', (data) => {
+      console.log('💓 GPS heartbeat received:', data);
+    });
+    
+    return () => {
+      console.log('🛰️ Disconnecting GPS socket');
+      socket.disconnect();
     };
   }, []);
 

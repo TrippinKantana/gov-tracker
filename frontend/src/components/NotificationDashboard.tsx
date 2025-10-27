@@ -24,6 +24,30 @@ interface Notification {
   timestamp: string;
   read: boolean;
   data?: any;
+  // Additional properties used in the component
+  isRead?: boolean;
+  createdAt?: Date;
+  category?: 'vehicle' | 'equipment' | 'facility' | 'system';
+  severity?: 'critical' | 'high' | 'medium' | 'low';
+  assetName?: string;
+  department?: string;
+  metadata?: {
+    daysOverdue?: number;
+  };
+}
+
+interface NotificationSettings {
+  enableSound: boolean;
+  enableEmail: boolean;
+  enableDesktop: boolean;
+  soundVolume: number;
+  emailRecipients: string[];
+  maintenanceThresholds: {
+    vehicleMaintenanceDays: number;
+    equipmentMaintenanceDays: number;
+    facilityInspectionDays: number;
+    vehicleMileageInterval: number;
+  };
 }
 
 const NotificationDashboard = () => {
@@ -33,6 +57,42 @@ const NotificationDashboard = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [emailRecipient, setEmailRecipient] = useState('');
+  
+  // Settings state
+  const [settings, setSettings] = useState<NotificationSettings>({
+    enableSound: true,
+    enableEmail: true,
+    enableDesktop: true,
+    soundVolume: 0.7,
+    emailRecipients: [],
+    maintenanceThresholds: {
+      vehicleMaintenanceDays: 90,
+      equipmentMaintenanceDays: 180,
+      facilityInspectionDays: 365,
+      vehicleMileageInterval: 5000
+    }
+  });
+
+  // Mock notification service
+  const notificationService = {
+    updateSettings: (newSettings: NotificationSettings) => {
+      console.log('Settings updated:', newSettings);
+      // In a real app, this would save to backend
+    },
+    createTestNotification: (type: string) => {
+      console.log(`Creating test ${type} notification`);
+      // In a real app, this would create a test notification
+    },
+    getNotifications: () => contextNotifications,
+    getSettings: () => settings,
+    markAsRead: (id: string) => {
+      markAsRead(id);
+    },
+    dismissNotification: (id: string) => {
+      console.log('Dismissing notification:', id);
+      // In a real app, this would dismiss the notification
+    }
+  };
 
   // First filter by user's department/MAC access
   const departmentFilteredNotifications = filterByDepartment(contextNotifications, user);
@@ -71,9 +131,10 @@ const NotificationDashboard = () => {
     handleSettingsUpdate({ emailRecipients: newRecipients });
   };
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (date: Date | string) => {
     const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    const targetDate = typeof date === 'string' ? new Date(date) : date;
+    const diffInSeconds = Math.floor((now.getTime() - targetDate.getTime()) / 1000);
 
     if (diffInSeconds < 60) return 'Just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;

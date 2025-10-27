@@ -61,7 +61,8 @@ const DrillDownReportGenerator = ({ isOpen, onClose }: DrillDownReportGeneratorP
     reportType: '',
     timeRange: 'this_month',
     customStartDate: '',
-    customEndDate: ''
+    customEndDate: '',
+    exportFormat: 'pdf'
   });
 
   // Initialize for MAC admin users
@@ -589,7 +590,7 @@ const DrillDownReportGenerator = ({ isOpen, onClose }: DrillDownReportGeneratorP
                       <div><strong>Report:</strong> {getReportTypesForCategory(selection.category).find(r => r.id === selection.reportType)?.label}</div>
                       <div><strong>Period:</strong> {selection.timeRange === 'custom' ? `${selection.customStartDate} to ${selection.customEndDate}` : selection.timeRange.replace('_', ' ')}</div>
                       <div><strong>Location:</strong> {selection.macName} {selection.facilityName !== 'All Facilities' ? `→ ${selection.facilityName}` : ''}</div>
-                      <div><strong>Format:</strong> {selection.exportFormat.toUpperCase()} {selection.exportFormat === 'pdf' ? '📄' : selection.exportFormat === 'excel' ? '📊' : '📋'}</div>
+                      <div><strong>Format:</strong> {selection.exportFormat?.toUpperCase() || 'PDF'} {selection.exportFormat === 'pdf' ? '📄' : selection.exportFormat === 'excel' ? '📊' : '📋'}</div>
                     </div>
                   </div>
                 )}

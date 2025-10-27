@@ -17,7 +17,6 @@ import { useAuth } from '../contexts/AuthContext'
 const AccountSettings = () => {
   const { user, logout, getToken } = useAuth()
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity'>('profile')
-  const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   if (!user) {
@@ -32,27 +31,7 @@ const AccountSettings = () => {
     )
   }
 
-  const showMessage = (type: 'success' | 'error', text: string) => {
-    setMessage({ type, text })
-    setTimeout(() => setMessage(null), 5000)
-  }
 
-  const testConnection = async () => {
-    setIsLoading(true)
-    try {
-      // Simple health check
-      const response = await fetch('/api/auth/health')
-      if (response.ok) {
-        const data = await response.json()
-        showMessage('success', `Backend connected: ${data.status}`)
-      } else {
-        showMessage('error', 'Backend connection failed')
-      }
-    } catch (error) {
-      showMessage('error', 'Backend is not running')
-    }
-    setIsLoading(false)
-  }
 
   const ProfileTab = () => (
     <div className="space-y-6">
@@ -149,15 +128,6 @@ const AccountSettings = () => {
             </div>
           </div>
 
-          <div className="mt-6">
-            <button
-              onClick={testConnection}
-              disabled={isLoading}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isLoading ? 'Testing...' : 'Test Backend Connection'}
-            </button>
-          </div>
         </div>
       </div>
 

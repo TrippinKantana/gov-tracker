@@ -998,11 +998,11 @@ const Departments = () => {
                 <div className="flex items-center space-x-3">
                   <div className="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-medium text-sm">
-                      {department.headOfDepartment.split(' ').map(n => n[0]).join('')}
+                      {department.headOfDepartment ? department.headOfDepartment.split(' ').map(n => n[0]).join('') : 'N/A'}
                     </span>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{department.headOfDepartment}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{department.headOfDepartment || 'Not Assigned'}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{department.email}</p>
                   </div>
                 </div>
