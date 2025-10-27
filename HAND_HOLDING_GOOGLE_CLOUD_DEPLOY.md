@@ -129,14 +129,44 @@ Compress-Archive -Path "backend" -DestinationPath "backend.zip" -Force
 
 **Method 1: Using Git (Recommended if your code is in GitHub)**
 
-In Cloud Shell, SSH into the VM and clone directly:
+**Option A: Using Personal Access Token**
+
+1. Get a token from: https://github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. Check "repo" permission
+4. Generate and copy the token
+
+Then in Cloud Shell:
 ```bash
 gcloud compute ssh gsa-tracker-vm --zone=europe-west1-b
 
-# On the VM:
-git clone https://github.com/YOUR_USERNAME/gov-tracker.git
-# Or your actual repository URL
+# On the VM, clone with token:
+git clone https://YOUR_TOKEN@github.com/TrippinKantana/gov-tracker.git
 ```
+
+**Option B: Using SSH Keys (More Secure)**
+
+```bash
+gcloud compute ssh gsa-tracker-vm --zone=europe-west1-b
+
+# Generate SSH key on VM
+ssh-keygen -t ed25519 -C "vm-deploy" -f ~/.ssh/id_ed25519
+
+# Copy public key
+cat ~/.ssh/id_ed25519.pub
+
+# Add this key to GitHub: Settings → SSH and GPG keys → New SSH key
+
+# Then clone using SSH:
+git clone git@github.com:TrippinKantana/gov-tracker.git
+```
+
+**Option C: Make Repository Public Temporarily**
+
+If it's a private repo you don't want to add tokens to, make it public temporarily:
+- Go to repository Settings → Danger Zone → Change visibility to Public
+- Clone without authentication
+- Make it private again after
 
 **Method 2: Upload via Local Computer**
 
@@ -197,19 +227,15 @@ sudo apt-get install -y nodejs git build-essential
 node --version
 npm --version
 
-# Unzip your backend
-cd ~
-unzip backend.zip
-
-# Install dependencies
-cd backend
+# Install dependencies (if not already installed)
 npm install
 
 # Create .env file
+# Note: FRONTEND_URL is for CORS - update this to your actual frontend URL when deployed
 cat > .env << EOF
 PORT=5000
 NODE_ENV=production
-FRONTEND_URL=http://YOUR_FRONTEND_URL
+FRONTEND_URL=http://localhost:3000
 EOF
 
 # Install PM2 to keep server running
@@ -275,7 +301,7 @@ Send this SMS to your tracker's phone number:
 
 ```
 #6666#APN,internet#
-#6666#SERVER,34.67.123.45,50100,TCP#
+#6666#SERVER,35.241.151.113,50100,TCP#
 #6666#TIMEZONE,0#
 #6666#TIMER,30#
 #6666#RESET#
