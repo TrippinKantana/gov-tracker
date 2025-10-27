@@ -698,7 +698,6 @@ const AddVehicleModal = ({ isOpen, onClose, onSuccess }: AddVehicleModalProps) =
                 )}
               </div>
             </div>
-
             {/* Actions */}
             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
               <button
