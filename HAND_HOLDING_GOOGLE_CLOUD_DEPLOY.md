@@ -561,6 +561,81 @@ gcloud compute instances set-machine-type gsa-tracker-vm --machine-type=e2-large
 1. ✅ Your platform is deployed!
 2. ✅ GPS tracker can connect
 3. ✅ Access your app at: `http://YOUR_IP:5000`
+4. 🚀 Deploy frontend (see Part 6 below)
+
+---
+
+## Part 6: Deploy Frontend
+
+### Option 1: Deploy to Vercel (Easiest)
+
+**Step 1: Push frontend to GitHub**
+```powershell
+# On your local machine
+cd "C:\Users\cyrus\Desktop\gov tracker\frontend"
+
+git init  # if not already a git repo
+git add .
+git commit -m "Initial frontend commit"
+git branch -M main
+git remote add origin https://github.com/TrippinKantana/gov-tracker.git
+git push -u origin main
+```
+
+**Step 2: Import to Vercel**
+1. Go to: https://vercel.com
+2. Sign up/login with GitHub
+3. Click "Add New Project"
+4. Import your repo
+5. Vercel will auto-detect it's a Vite/React app
+6. Click "Deploy"
+
+**Step 3: Update API URL**
+In your frontend code, update the API URL to point to your VM:
+
+Find the file that has the API base URL (usually `frontend/src/services/api.ts` or similar) and change it from `localhost:5000` to:
+
+```typescript
+const API_URL = 'http://35.241.151.113:5000';
+```
+
+Then commit and push - Vercel will auto-redeploy.
+
+### Option 2: Serve Frontend from Same VM
+
+**On the VM:**
+```bash
+# Install nginx
+sudo apt-get update
+sudo apt-get install -y nginx
+
+# Clone/build frontend
+cd ~
+git clone https://github.com/TrippinKantana/gov-tracker.git
+cd gov-tracker/frontend
+
+# Install dependencies
+npm install
+# OR if you have node on the VM already
+npm run build
+
+# Copy build files to nginx directory
+sudo cp -r dist/* /var/www/html/
+
+# Configure nginx (optional)
+sudo nano /etc/nginx/sites-available/default
+
+# Restart nginx
+sudo systemctl restart nginx
+```
+
+**Update firewall for port 80:**
+```powershell
+# From your local PowerShell
+gcloud compute firewall-rules create allow-http --allow tcp:80 --source-ranges 0.0.0.0/0 --description "HTTP access"
+```
+
+Then access frontend at: `http://35.241.151.113`
 
 **To complete setup:**
 - Set up database (PostgreSQL)
