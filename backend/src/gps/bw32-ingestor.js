@@ -46,10 +46,11 @@ class BW32Ingestor extends EventEmitter {
     socket.on('data', (chunk) => {
       try {
         // Log raw received data for debugging
-        const rawData = chunk.toString('hex');
-        const rawAscii = chunk.toString('ascii', 0, 100);
-        console.log(`📥 Raw data received: ${rawData.substring(0, 100)}...`);
-        console.log(`📥 Raw ASCII: ${rawAscii}`);
+        console.log(`📥 ========== RAW DATA RECEIVED ==========`);
+        console.log(`📥 Hex: ${chunk.toString('hex')}`);
+        console.log(`📥 ASCII: ${chunk.toString('ascii')}`);
+        console.log(`📥 Length: ${chunk.length} bytes`);
+        console.log(`📥 =========================================`);
         
         buffer = Buffer.concat([buffer, chunk]);
         
