@@ -8,25 +8,25 @@ const domain = import.meta.env.VITE_AUTH0_DOMAIN
 const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID
 const redirectUri = import.meta.env.VITE_AUTH0_REDIRECT_URI || window.location.origin
 
-// Check if we're on HTTP without Auth0 credentials (development mode)
+// Check if we're on HTTP (development mode without HTTPS)
 const isHttp = window.location.protocol === 'http:'
 const hasAuth0Creds = domain && clientId
 
-// Skip Auth0 only if on HTTP AND no credentials provided
-const shouldSkipAuth0 = isHttp && !hasAuth0Creds
+// Skip Auth0 completely on HTTP
+const shouldSkipAuth0 = isHttp
 
-// Override window location to HTTPS if we're on HTTP with Auth0
+// Warn if trying to use Auth0 on HTTP
 if (isHttp && hasAuth0Creds) {
-  console.warn('Auth0 requires HTTPS. Please use a secure connection or provide a domain with SSL.')
+  console.warn('⚠️ Auth0 requires HTTPS. Disabling Auth0 and using dev mode.');
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     {shouldSkipAuth0 ? (
-      // HTTP development mode without Auth0
+      // HTTP mode - skip Auth0 completely
       <App />
     ) : (
-      // HTTPS or Auth0 credentials provided
+      // HTTPS mode - use Auth0
       <Auth0Provider 
         domain={domain!}
         clientId={clientId!}
