@@ -309,6 +309,66 @@ app.post('/api/employees', async (req, res) => {
   }
 });
 
+app.put('/api/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { full_name, badge_number, email, phone, position, department, department_id, clearance_level, status, hire_date } = req.body;
+    
+    const result = await query(`
+      UPDATE employees 
+      SET full_name=$1, badge_number=$2, email=$3, phone=$4, position=$5, department=$6, department_id=$7, clearance_level=$8, status=$9, hire_date=$10
+      WHERE id=$11
+      RETURNING *
+    `, [full_name, badge_number, email, phone, position, department, department_id, clearance_level, status, hire_date, id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Employee not found' });
+    }
+    
+    logActivity('Updated', 'employee', `${full_name} (${position})`);
+    
+    res.json({ success: true, employee: result.rows[0] });
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    res.status(500).json({ success: false, error: 'Failed to update employee' });
+  }
+});
+
+app.delete('/api/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await query('DELETE FROM employees WHERE id=$1 RETURNING *', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Employee not found' });
+    }
+    
+    logActivity('Deleted', 'employee', result.rows[0].full_name);
+    
+    res.json({ success: true, message: 'Employee deleted' });
+  } catch (error) {
+    console.error('Error deleting employee:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete employee' });
+  }
+});
+
+app.get('/api/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query('SELECT * FROM employees WHERE id=$1', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Employee not found' });
+    }
+    
+    res.json({ success: true, employee: result.rows[0] });
+  } catch (error) {
+    console.error('Error fetching employee:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch employee' });
+  }
+});
+
 // Stock Inventory API
 app.get('/api/stock', async (req, res) => {
   try {
