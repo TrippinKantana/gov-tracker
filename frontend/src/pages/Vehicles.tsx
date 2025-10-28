@@ -170,49 +170,8 @@ const Vehicles = () => {
     };
   }, [activeDropdown]);
 
-  // Mock vehicle data (used as fallback)
-  const mockVehicles: Vehicle[] = [
-    {
-      id: 'VH001',
-      plateNumber: 'LBR-001-GOV',
-      make: 'Toyota',
-      model: 'Hilux',
-      year: 2023,
-      vehicleType: 'truck',
-      department: 'Ministry of Health',
-      departmentId: 'DEPT001',
-      currentOperator: 'Dr. Sarah Johnson',
-      status: 'active',
-      fuelLevel: 75,
-      mileage: 12500,
-      lastLocation: 'Ministry of Health HQ',
-      gpsTrackerId: 'BW32001',
-      updatedAt: '2024-01-15 09:30',
-      lastMaintenance: '2024-01-01',
-      nextMaintenance: '2024-04-01',
-      maintenanceInterval: 90 // 90 days
-    },
-    {
-      id: 'VH002',
-      plateNumber: 'LBR-002-GOV',
-      make: 'Nissan',
-      model: 'Patrol',
-      year: 2022,
-      vehicleType: 'car',
-      department: 'Ministry of Defense',
-      departmentId: 'DEPT004',
-      currentOperator: 'Security Team Alpha',
-      status: 'active',
-      fuelLevel: 45,
-      mileage: 28500,
-      lastLocation: 'Defense Ministry HQ',
-      gpsTrackerId: 'BW32002',
-      updatedAt: '2024-01-15 08:15',
-      lastMaintenance: '2023-12-15',
-      nextMaintenance: '2024-03-15',
-      maintenanceInterval: 90 // 90 days
-    }
-  ];
+  // No mock data - all data comes from database via API
+  const mockVehicles: Vehicle[] = [];
 
   // First filter by user's department/MAC access
   const departmentFilteredVehicles = filterByDepartment(vehicles, user);
