@@ -637,6 +637,89 @@ gcloud compute firewall-rules create allow-http --allow tcp:80 --source-ranges 0
 
 Then access frontend at: `http://35.241.151.113`
 
+---
+
+## Part 5: Set Up HTTPS with Free SSL (OPTIONAL BUT RECOMMENDED)
+
+**Why this matters:** Auth0 requires HTTPS. Without it, you'll see errors and can't use the app properly.
+
+### Step 1: Get a Free Domain
+
+**Option A - Freenom (Free .tk, .ml, .ga domains):**
+1. Go to https://www.freenom.com
+2. Search for a domain (e.g., `mygovtracker.tk`)
+3. Add to cart and checkout (FREE for 1 year)
+
+**Option B - No-IP (Free subdomain):**
+1. Go to https://www.noip.com
+2. Sign up for free account
+3. Create hostname: `govtracker.ddns.net`
+4. Point to your VM IP: `35.241.151.113`
+
+### Step 2: Point Domain to Your VM
+
+**In your domain registrar's DNS settings, add:**
+```
+Type: A
+Name: @ (or yourdomain.com)
+TTL: 3600
+Value: 35.241.151.113
+```
+
+Wait 5-10 minutes for DNS to propagate.
+
+### Step 3: Install SSL Certificate
+
+**On your VM:**
+```bash
+# Install certbot
+sudo apt update
+sudo apt install certbot python3-certbot-nginx -y
+
+# Get free SSL certificate (replace with YOUR domain)
+sudo certbot --nginx -d yourdomain.com
+
+# Certbot will:
+# ✅ Get free Let's Encrypt certificate
+# ✅ Configure nginx automatically
+# ✅ Set up auto-renewal (renews every 90 days)
+
+# Test renewal
+sudo certbot renew --dry-run
+```
+
+### Step 4: Open HTTPS Firewall Port
+
+**From your local PowerShell:**
+```powershell
+gcloud compute firewall-rules create allow-https --allow tcp:443 --source-ranges 0.0.0.0/0 --description "HTTPS access"
+```
+
+### Step 5: Update Frontend to Use HTTPS
+
+**On the VM:**
+```bash
+cd ~/gov-tracker/frontend
+
+# Edit environment to use your domain
+nano .env.production
+```
+
+**Update to:**
+```
+VITE_API_URL=https://yourdomain.com/api
+```
+
+```bash
+# Rebuild
+npm run build
+
+# Copy to nginx
+sudo cp -r dist/* /var/www/html/
+```
+
+**Your app is now at:** `https://yourdomain.com` ✅
+
 **To complete setup:**
 - Set up database (PostgreSQL)
 - Configure email notifications
