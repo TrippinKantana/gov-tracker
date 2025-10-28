@@ -130,5 +130,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-export type { User };
