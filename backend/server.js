@@ -24,6 +24,9 @@ const ReportGenerator = require('./src/reports/report-generator'); // Keep for d
 const PdfMakeReportGenerator = require('./src/reports/pdfmake-generator'); // Beautiful main reports
 const DrillDownReporter = require('./src/reports/drill-down-reporter');
 
+// Database Connection
+const { query, initDatabase } = require('./src/config/database');
+
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -600,45 +603,73 @@ app.delete('/api/departments/:id', (req, res) => {
 });
 
 // Vehicles API
-app.get('/api/vehicles', (req, res) => {
-  res.json({
-    success: true,
-    vehicles: vehicles,
-    total: vehicles.length
-  });
+app.get('/api/vehicles', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM vehicles ORDER BY created_at DESC');
+    res.json({
+      success: true,
+      vehicles: result.rows,
+      total: result.rows.length
+    });
+  } catch (error) {
+    console.error('Error fetching vehicles:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch vehicles' });
+  }
 });
 
 // GET single vehicle by ID
-app.get('/api/vehicles/:id', (req, res) => {
-  const vehicle = vehicles.find(v => v.id === req.params.id);
-  if (!vehicle) {
-    return res.status(404).json({
-      success: false,
-      message: 'Vehicle not found'
+app.get('/api/vehicles/:id', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM vehicles WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vehicle not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      vehicle: result.rows[0]
     });
+  } catch (error) {
+    console.error('Error fetching vehicle:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch vehicle' });
   }
-  
-  res.json({
-    success: true,
-    vehicle: vehicle
-  });
 });
 
 // POST vehicle
-app.post('/api/vehicles', (req, res) => {
-  const newVehicle = {
-    id: `VH${Date.now()}`,
-    ...req.body,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  
-  vehicles.push(newVehicle);
-  
-  // Log activity
-  logActivity('Created', 'vehicle', `${newVehicle.plateNumber} - ${newVehicle.make} ${newVehicle.model}`, req.body.enteredBy || 'System');
-  
-  res.status(201).json({ success: true, vehicle: newVehicle });
+app.post('/api/vehicles', async (req, res) => {
+  try {
+    const { plate_number, make, model, year, color, vin_number, vehicle_type, department, department_id, current_operator, gps_tracker, fuel_level, mileage, last_location, last_maintenance, next_maintenance, gsa_code, engine_number, chassis_number, registration_date, insurance_expiry, road_tax_expiry, assigned_driver, driver_license, contact_number, notes } = req.body;
+    
+    const result = await query(`
+      INSERT INTO vehicles (
+        plate_number, make, model, year, color, vin_number, vehicle_type, 
+        department, department_id, current_operator, gps_tracker, fuel_level, 
+        mileage, last_location, last_maintenance, next_maintenance, gsa_code, 
+        engine_number, chassis_number, registration_date, insurance_expiry, 
+        road_tax_expiry, assigned_driver, driver_license, contact_number, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+      RETURNING *
+    `, [
+      plate_number, make, model, year, color, vin_number, vehicle_type,
+      department, department_id, current_operator, gps_tracker, fuel_level,
+      mileage, last_location, last_maintenance, next_maintenance, gsa_code,
+      engine_number, chassis_number, registration_date, insurance_expiry,
+      road_tax_expiry, assigned_driver, driver_license, contact_number, notes
+    ]);
+    
+    const newVehicle = result.rows[0];
+    
+    // Log activity
+    logActivity('Created', 'vehicle', `${newVehicle.plate_number} - ${newVehicle.make} ${newVehicle.model}`, req.body.enteredBy || 'System');
+    
+    res.status(201).json({ success: true, vehicle: newVehicle });
+  } catch (error) {
+    console.error('Error creating vehicle:', error);
+    res.status(500).json({ success: false, error: 'Failed to create vehicle' });
+  }
 });
 
 // PUT vehicle
@@ -1649,6 +1680,9 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
+
+// Initialize Database Connection
+initDatabase();
 
 // Initialize GPS Tracking System
 const gpsHandler = new GPSHandler({ app, io });
