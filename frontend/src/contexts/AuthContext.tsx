@@ -4,7 +4,6 @@
  */
 
 import { createContext, useContext, ReactNode } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
 
 export interface User {
   id: string;
@@ -33,91 +32,62 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Development mode user (bypass Auth0 on HTTP)
+const DEV_USER: User = {
+  id: 'dev-user-1',
+  email: 'dev@government.local',
+  name: 'Development User',
+  roles: ['admin', 'super_admin'],
+  permissions: ['*'],
+  department: 'IT',
+  clearanceLevel: 5
+};
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const { 
-    user: auth0User, 
-    isAuthenticated, 
-    isLoading, 
-    loginWithRedirect, 
-    logout: auth0Logout,
-    getAccessTokenSilently 
-  } = useAuth0();
+  // Check if we're in development mode (HTTP without Auth0)
+  const isDevMode = typeof window !== 'undefined' && 
+    window.location.protocol === 'http:' && 
+    (!import.meta.env.VITE_AUTH0_DOMAIN || !import.meta.env.VITE_AUTH0_CLIENT_ID);
 
-  const transformUser = (auth0User: any): User | null => {
-    if (!auth0User) return null;
-    
-    // Check multiple possible locations for roles
-    let roles = auth0User['https://gov-tracker.com/roles'] || 
-                auth0User.roles || 
-                auth0User.app_metadata?.roles || 
-                auth0User.user_metadata?.roles || 
-                [];
-    
+  // Use dev mode if HTTP without Auth0 credentials
+  if (isDevMode) {
+    const login = () => console.log('Dev mode: login bypassed');
+    const logout = () => console.log('Dev mode: logout bypassed');
+    const hasPermission = () => true;
+    const hasRole = () => true;
+    const getToken = async () => 'dev-token';
 
-    
+    return (
+      <AuthContext.Provider value={{
+        user: DEV_USER,
+        isAuthenticated: true,
+        isLoading: false,
+        login,
+        logout,
+        hasPermission,
+        hasRole,
+        getToken
+      }}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
 
-    
-    return {
-      id: auth0User.sub,
-      email: auth0User.email,
-      name: auth0User.name || auth0User.email,
-      roles: roles,
-      permissions: auth0User['https://gov-tracker.com/permissions'] || 
-                   auth0User.permissions || 
-                   auth0User.app_metadata?.permissions || 
-                   [],
-      department: auth0User['https://gov-tracker.com/department'] || 
-                  auth0User.user_metadata?.department,
-      clearanceLevel: auth0User['https://gov-tracker.com/clearance_level'] || 
-                      auth0User.user_metadata?.clearance_level || 1
-    };
-  };
-
-  const user = transformUser(auth0User);
-
-  const login = () => {
-    loginWithRedirect();
-  };
-
-  const logout = () => {
-    auth0Logout({
-      logoutParams: {
-        returnTo: window.location.origin
-      }
-    });
-  };
-
-  const hasPermission = (permission: string): boolean => {
-    return user?.permissions?.includes(permission) || false;
-  };
-
-  const hasRole = (role: string): boolean => {
-    return user?.roles?.includes(role) || false;
-  };
-
-  const getToken = async (): Promise<string | null> => {
-    if (!isAuthenticated) return null;
-    try {
-      return await getAccessTokenSilently();
-    } catch (error) {
-      console.error('Error getting access token:', error);
-      return null;
-    }
-  };
-
-  const contextValue: AuthContextType = {
-    user,
-    isAuthenticated,
-    isLoading,
-    login,
-    logout,
-    hasPermission,
-    hasRole,
-    getToken
+  // For production with Auth0, return a fallback that doesn't use hooks
+  // Auth0Provider will wrap this component in main.tsx
+  const fallbackContext: AuthContextType = {
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+    login: () => console.log('No Auth0 setup'),
+    logout: () => console.log('No Auth0 setup'),
+    hasPermission: () => false,
+    hasRole: () => false,
+    getToken: async () => null
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={fallbackContext}>
       {children}
     </AuthContext.Provider>
   );
