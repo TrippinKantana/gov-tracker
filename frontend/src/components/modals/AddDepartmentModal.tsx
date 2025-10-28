@@ -117,19 +117,6 @@ const AddDepartmentModal = ({ isOpen, onClose, onSuccess }: AddDepartmentModalPr
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {/* MAC Description */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">What are MACs?</h3>
-              <p className="text-sm text-blue-800 dark:text-blue-400">
-                <strong>MACs</strong> stands for <strong>Ministries, Agencies, and Commissions</strong> - the organizational units within the Republic of Liberia's government structure. Each MAC represents a distinct governmental body responsible for specific public services and administration.
-              </p>
-              <ul className="text-xs text-blue-700 dark:text-blue-500 mt-2 ml-4 list-disc">
-                <li><strong>Ministries</strong> - Primary government departments (e.g., Ministry of Health, Ministry of Education)</li>
-                <li><strong>Agencies</strong> - Specialized government agencies (e.g., Liberia Revenue Authority, FDA)</li>
-                <li><strong>Commissions</strong> - Regulatory and oversight bodies (e.g., Elections Commission, Anti-Corruption Commission)</li>
-              </ul>
-            </div>
-
             {errors.general && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                 <p className="text-red-600 dark:text-red-400 text-sm">{errors.general}</p>
