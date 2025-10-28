@@ -52,7 +52,11 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
     loadNotifications();
 
     // Setup real-time notifications via Socket.IO
-    const socket = io('http://localhost:5000');
+    // Get API URL from environment or default to localhost for development
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    // Convert API URL to socket URL by removing /api suffix
+    const socketUrl = apiUrl.replace('/api', '').replace('https://', 'http://').replace('http://http://', 'http://');
+    const socket = io(socketUrl);
     
     socket.on('notification:new', (notification: Notification) => {
       setNotifications(prev => [notification, ...prev]);
