@@ -274,6 +274,21 @@ app.get('/api/employees', async (req, res) => {
   }
 });
 
+// Also support /api/personnel for compatibility
+app.get('/api/personnel', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM employees ORDER BY created_at DESC');
+    res.json({
+      success: true,
+      personnel: result.rows,
+      total: result.rows.length
+    });
+  } catch (error) {
+    console.error('Error fetching personnel:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch personnel' });
+  }
+});
+
 app.post('/api/employees', async (req, res) => {
   try {
     const { full_name, badge_number, email, phone, position, department, department_id, clearance_level, status, hire_date } = req.body;
@@ -296,6 +311,21 @@ app.post('/api/employees', async (req, res) => {
 
 // Stock Inventory API
 app.get('/api/stock', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM stock_inventory ORDER BY created_at DESC');
+    res.json({
+      success: true,
+      stock: result.rows,
+      total: result.rows.length
+    });
+  } catch (error) {
+    console.error('Error fetching stock:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch stock' });
+  }
+});
+
+// Also support /api/stock/inventory for compatibility
+app.get('/api/stock/inventory', async (req, res) => {
   try {
     const result = await query('SELECT * FROM stock_inventory ORDER BY created_at DESC');
     res.json({
