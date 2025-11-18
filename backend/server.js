@@ -680,29 +680,92 @@ app.post('/api/vehicles', async (req, res) => {
 });
 
 // PUT vehicle
-app.put('/api/vehicles/:id', (req, res) => {
-  const index = vehicles.findIndex(v => v.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Vehicle not found' });
+app.put('/api/vehicles/:id', async (req, res) => {
+  try {
+    const { plate_number, make, model, year, color, vin_number, vehicle_type, department, department_id, current_operator, gps_tracker, fuel_level, mileage, last_location, last_maintenance, next_maintenance, gsa_code, engine_number, chassis_number, registration_date, insurance_expiry, road_tax_expiry, assigned_driver, driver_license, contact_number, notes, status } = req.body;
+    
+    // First check if vehicle exists
+    const checkResult = await query('SELECT * FROM vehicles WHERE id = $1', [req.params.id]);
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Vehicle not found' });
+    }
+    
+    // Update vehicle in database
+    const result = await query(`
+      UPDATE vehicles SET
+        plate_number = COALESCE($1, plate_number),
+        make = COALESCE($2, make),
+        model = COALESCE($3, model),
+        year = COALESCE($4, year),
+        color = COALESCE($5, color),
+        vin_number = COALESCE($6, vin_number),
+        vehicle_type = COALESCE($7, vehicle_type),
+        department = COALESCE($8, department),
+        department_id = COALESCE($9, department_id),
+        current_operator = COALESCE($10, current_operator),
+        gps_tracker = COALESCE($11, gps_tracker),
+        fuel_level = COALESCE($12, fuel_level),
+        mileage = COALESCE($13, mileage),
+        last_location = COALESCE($14, last_location),
+        last_maintenance = COALESCE($15, last_maintenance),
+        next_maintenance = COALESCE($16, next_maintenance),
+        gsa_code = COALESCE($17, gsa_code),
+        engine_number = COALESCE($18, engine_number),
+        chassis_number = COALESCE($19, chassis_number),
+        registration_date = COALESCE($20, registration_date),
+        insurance_expiry = COALESCE($21, insurance_expiry),
+        road_tax_expiry = COALESCE($22, road_tax_expiry),
+        assigned_driver = COALESCE($23, assigned_driver),
+        driver_license = COALESCE($24, driver_license),
+        contact_number = COALESCE($25, contact_number),
+        notes = COALESCE($26, notes),
+        status = COALESCE($27, status),
+        updated_at = NOW()
+      WHERE id = $28
+      RETURNING *
+    `, [
+      plate_number, make, model, year, color, vin_number, vehicle_type,
+      department, department_id, current_operator, gps_tracker, fuel_level,
+      mileage, last_location, last_maintenance, next_maintenance, gsa_code,
+      engine_number, chassis_number, registration_date, insurance_expiry,
+      road_tax_expiry, assigned_driver, driver_license, contact_number, notes, status,
+      req.params.id
+    ]);
+    
+    const updatedVehicle = result.rows[0];
+    
+    // Log activity
+    logActivity('Updated', 'vehicle', `${updatedVehicle.plate_number} modified`, req.body.updatedBy || 'System');
+    
+    res.json({ success: true, vehicle: updatedVehicle });
+  } catch (error) {
+    console.error('Error updating vehicle:', error);
+    res.status(500).json({ success: false, error: 'Failed to update vehicle' });
   }
-  
-  vehicles[index] = { ...vehicles[index], ...req.body, updatedAt: new Date().toISOString() };
-  
-  // Log activity
-  logActivity('Updated', 'vehicle', `${vehicles[index].plateNumber} modified`, req.body.updatedBy || 'System');
-  
-  res.json({ success: true, vehicle: vehicles[index] });
 });
 
 // DELETE vehicle
-app.delete('/api/vehicles/:id', (req, res) => {
-  const index = vehicles.findIndex(v => v.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Vehicle not found' });
+app.delete('/api/vehicles/:id', async (req, res) => {
+  try {
+    // First check if vehicle exists and get plate number for logging
+    const checkResult = await query('SELECT plate_number FROM vehicles WHERE id = $1', [req.params.id]);
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Vehicle not found' });
+    }
+    
+    const plateNumber = checkResult.rows[0].plate_number;
+    
+    // Delete vehicle from database
+    await query('DELETE FROM vehicles WHERE id = $1', [req.params.id]);
+    
+    // Log activity
+    logActivity('Deleted', 'vehicle', `${plateNumber} removed`, req.body.deletedBy || 'System');
+    
+    res.json({ success: true, message: 'Vehicle deleted' });
+  } catch (error) {
+    console.error('Error deleting vehicle:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete vehicle' });
   }
-  
-  vehicles.splice(index, 1);
-  res.json({ success: true, message: 'Vehicle deleted' });
 });
 
 // Vehicle Maintenance API
@@ -769,41 +832,50 @@ app.delete('/api/vehicles/:vehicleId/maintenance/:id', (req, res) => {
 });
 
 // Unassign GPS tracker from vehicle
-app.post('/api/vehicles/:vehicleId/unassign-tracker', (req, res) => {
+app.post('/api/vehicles/:vehicleId/unassign-tracker', async (req, res) => {
   const vehicleId = req.params.vehicleId;
-  
-  // Find the vehicle
-  const vehicle = vehicles.find(v => v.id === vehicleId);
-  if (!vehicle) {
-    return res.json({
+  try {
+    const vehicleResult = await query('SELECT id, plate_number, gps_tracker FROM vehicles WHERE id = $1', [vehicleId]);
+    if (vehicleResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vehicle not found'
+      });
+    }
+    
+    const vehicle = vehicleResult.rows[0];
+    const trackerId = vehicle.gps_tracker;
+    if (!trackerId) {
+      return res.json({
+        success: false,
+        error: 'No GPS tracker assigned to this vehicle'
+      });
+    }
+    
+    // Clear the tracker from the vehicle record in the database first
+    await query('UPDATE vehicles SET gps_tracker = NULL, updated_at = NOW() WHERE id = $1', [vehicleId]);
+    
+    // Update GPS handler state after DB update succeeds
+    if (gpsHandler.devices && gpsHandler.devices.has(trackerId)) {
+      const deviceInfo = gpsHandler.devices.get(trackerId);
+      deviceInfo.vehicleId = null;
+      deviceInfo.status = 'available';
+      console.log(`📡 GPS device ${trackerId} unassigned from vehicle ${vehicleId}`);
+    }
+    
+    logActivity('Updated', 'vehicle', `${vehicle.plate_number} tracker unassigned (${trackerId})`, req.body.updatedBy || 'System');
+    
+    res.json({
+      success: true,
+      message: 'GPS tracker unassigned successfully'
+    });
+  } catch (error) {
+    console.error('Error unassigning GPS tracker:', error);
+    res.status(500).json({
       success: false,
-      error: 'Vehicle not found'
+      error: 'Failed to unassign GPS tracker'
     });
   }
-  
-  const trackerId = vehicle.gpsTracker;
-  if (!trackerId) {
-    return res.json({
-      success: false,
-      error: 'No GPS tracker assigned to this vehicle'
-    });
-  }
-  
-  // Find and unassign the GPS device in GPS handler
-  if (gpsHandler.devices && gpsHandler.devices.has(trackerId)) {
-    const deviceInfo = gpsHandler.devices.get(trackerId);
-    deviceInfo.vehicleId = null;
-    deviceInfo.status = 'available';
-    console.log(`📡 GPS device ${trackerId} unassigned from vehicle ${vehicleId}`);
-  }
-  
-  // Clear the tracker from the vehicle
-  delete vehicle.gpsTracker;
-  
-  res.json({
-    success: true,
-    message: 'GPS tracker unassigned successfully'
-  });
 });
 
 // Facilities API
@@ -1126,54 +1198,91 @@ app.get('/api/hardware/bw32/devices', (req, res) => {
 });
 
 // Endpoint to register/assign GPS device to vehicle
-app.post('/api/gps/devices', (req, res) => {
+app.post('/api/gps/devices', async (req, res) => {
   const { deviceId, vehicleId, name } = req.body;
   
-  // Check if device exists in GPS handler (real connected device)
-  if (!gpsHandler.devices || !gpsHandler.devices.has(deviceId)) {
-    return res.json({
-      success: false,
-      error: 'GPS device not found. Device must be connected to server first.'
-    });
-  }
-  
-  const deviceInfo = gpsHandler.devices.get(deviceId);
-  if (deviceInfo.vehicleId) {
-    return res.json({
-      success: false,
-      error: 'Device is already assigned to a vehicle'
-    });
-  }
-  
-  // Update device assignment via GPS handler
-  deviceInfo.vehicleId = vehicleId;
-  if (name) deviceInfo.name = name;
-  deviceInfo.status = 'assigned';
-  
-  // Also update the vehicle's gpsTracker field if it exists
-  const vehicle = vehicles.find(v => v.id === vehicleId);
-  if (vehicle) {
-    vehicle.gpsTracker = deviceId;
-  }
-  
-  console.log(`📡 GPS device ${deviceId} assigned to vehicle ${vehicleId}`);
-  
-  res.json({
-    success: true,
-    message: 'GPS device assigned successfully',
-    device: {
-      deviceId,
-      vehicleId: vehicleId,
-      name: deviceInfo.name,
-      status: 'assigned',
-      lastSeen: deviceInfo.lastSeen
+  try {
+    // Check if device exists in GPS handler (real connected device)
+    if (!gpsHandler.devices || !gpsHandler.devices.has(deviceId)) {
+      return res.json({
+        success: false,
+        error: 'GPS device not found. Device must be connected to server first.'
+      });
     }
-  });
+    
+    const deviceInfo = gpsHandler.devices.get(deviceId);
+    if (deviceInfo.vehicleId) {
+      return res.json({
+        success: false,
+        error: 'Device is already assigned to a vehicle'
+      });
+    }
+    
+    // Ensure vehicle exists
+    const vehicleResult = await query('SELECT id, plate_number FROM vehicles WHERE id = $1', [vehicleId]);
+    if (vehicleResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vehicle not found'
+      });
+    }
+    
+    // Update the vehicle's gps_tracker field in the database first
+    const updatedVehicleResult = await query('UPDATE vehicles SET gps_tracker = $1, updated_at = NOW() WHERE id = $2 RETURNING plate_number', [deviceId, vehicleId]);
+    if (updatedVehicleResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vehicle not found or could not be updated'
+      });
+    }
+    const updatedVehicle = updatedVehicleResult.rows[0];
+    
+    // Update device assignment via GPS handler after DB update succeeds
+    deviceInfo.vehicleId = vehicleId;
+    if (name) deviceInfo.name = name;
+    deviceInfo.status = 'assigned';
+    
+    logActivity('Updated', 'vehicle', `${updatedVehicle.plate_number} tracker assigned (${deviceId})`, req.body.updatedBy || 'System');
+    
+    console.log(`📡 GPS device ${deviceId} assigned to vehicle ${vehicleId}`);
+    
+    res.json({
+      success: true,
+      message: 'GPS device assigned successfully',
+      device: {
+        deviceId,
+        vehicleId: vehicleId,
+        name: deviceInfo.name,
+        status: 'assigned',
+        lastSeen: deviceInfo.lastSeen
+      }
+    });
+  } catch (error) {
+    console.error('Error assigning GPS device:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to assign GPS device'
+    });
+  }
 });
 
 // Assets API
-app.get('/api/assets', (req, res) => {
-  res.json([...vehicles, ...facilities, ...equipment]);
+app.get('/api/assets', async (req, res) => {
+  try {
+    const vehiclesResult = await query('SELECT * FROM vehicles ORDER BY created_at DESC');
+    const assets = [
+      ...vehiclesResult.rows,
+      ...facilities,
+      ...equipment
+    ];
+    res.json(assets);
+  } catch (error) {
+    console.error('Error fetching assets:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch assets'
+    });
+  }
 });
 
 // Tracking API
