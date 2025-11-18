@@ -1,0 +1,85 @@
+name: Strix Security Scan
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main ]
+  schedule:
+    # Run weekly security scan every Monday at 2 AM UTC
+    - cron: '0 2 * * 1'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    name: AI-Powered Security Testing
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Strix
+        run: pipx install strix-agent
+
+      - name: Run Strix on Backend
+        env:
+          STRIX_LLM: ${{ secrets.STRIX_LLM || 'openai/gpt-4' }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_API_BASE: ${{ secrets.LLM_API_BASE }}
+        run: |
+          strix -n -t ./backend \
+            --instruction "Focus on Node.js/Express security: SQL injection, authentication bypass, CORS misconfigurations, JWT vulnerabilities, and API endpoint security. This is a government asset tracking platform with sensitive data."
+        continue-on-error: true # Don't fail the build, but report findings
+
+      - name: Run Strix on Frontend
+        env:
+          STRIX_LLM: ${{ secrets.STRIX_LLM || 'openai/gpt-4' }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_API_BASE: ${{ secrets.LLM_API_BASE }}
+        run: |
+          strix -n -t ./frontend \
+            --instruction "Focus on React security: XSS vulnerabilities, authentication flows, API key exposure, client-side injection, and sensitive data handling."
+        continue-on-error: true
+
+      - name: Upload Security Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: strix-security-reports
+          path: agent_runs/
+          retention-days: 30
+
+      - name: Comment PR with Findings
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Find the latest Strix report
+            const reportsDir = 'agent_runs';
+            if (fs.existsSync(reportsDir)) {
+              const reports = fs.readdirSync(reportsDir);
+              if (reports.length > 0) {
+                const latestReport = reports[reports.length - 1];
+                const reportPath = path.join(reportsDir, latestReport, 'report.md');
+                
+                if (fs.existsSync(reportPath)) {
+                  const reportContent = fs.readFileSync(reportPath, 'utf8');
+                  github.rest.issues.createComment({
+                    issue_number: context.issue.number,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    body: `## 🔒 Strix Security Scan Results\n\n${reportContent}`
+                  });
+                }
+              }
+            }
+

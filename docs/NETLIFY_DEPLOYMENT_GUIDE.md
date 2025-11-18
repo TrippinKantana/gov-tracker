@@ -47,7 +47,8 @@ When deploying to Netlify (frontend) and Railway (backend), here's how the archi
 
 Before deploying to Netlify, ensure:
 
-- ✅ Your backend API is deployed on Railway (see [RAILWAY_DEPLOYMENT_GUIDE.md](./RAILWAY_DEPLOYMENT_GUIDE.md))
+- ✅ Your backend API is deployed on Railway (see [RAILWAY_DEPLOYMENT_GUIDE.md](./RAILWAY_DEPL
+OYMENT_GUIDE.md))
 - ✅ Backend CORS is configured to allow your Netlify domain
 - ✅ You have your Railway backend URL (e.g., `https://your-app.up.railway.app`)
 - ✅ You have a GitHub repository with your code

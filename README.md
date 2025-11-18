@@ -32,6 +32,7 @@ Access the application:
 - **Real-time**: Socket.IO for live GPS updates
 - **Maps**: Mapbox GL JS with full-screen capability
 - **Hardware**: Lantern SOS Tracker integration
+- **Security**: Strix AI-powered penetration testing (automated in CI/CD)
 
 ## 📁 Project Structure
 
@@ -93,6 +94,8 @@ The full-screen map supports:
 - Secure API endpoints with proper validation
 - Database encryption for sensitive data
 - Real-time alerts for unauthorized asset movement
+- **Automated Security Testing**: Strix AI-powered penetration testing runs on every PR
+  - See [Security Testing Guide](docs/STRIX_SECURITY_TESTING.md) for details
 
 ## 🔧 Development
 
