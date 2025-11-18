@@ -29,14 +29,18 @@ const { query, initDatabase } = require('./src/config/database');
 
 const app = express();
 const server = createServer(app);
+// Configure allowed origins for CORS
+const allowedOrigins = [
+  process.env.FRONTEND_URL || "http://localhost:3000",
+  process.env.NETLIFY_URL || "",
+  process.env.CUSTOM_DOMAIN || "",
+  "http://localhost:3000"
+].filter(Boolean); // Remove empty strings
+
 const io = new Server(server, {
   cors: {
-    origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      "http://35.241.151.113",
-      "http://localhost:3000"
-    ],
-    methods: ["GET", "POST"],
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true
   }
 });
@@ -76,7 +80,10 @@ const findAvailablePort = async () => {
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

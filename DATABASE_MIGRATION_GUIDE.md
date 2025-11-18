@@ -21,7 +21,7 @@ Replace all in-memory mock data with a real database so that:
    - Name it: `gov-tracker`
    - Choose a region close to your VM (e.g., Europe if your VM is in Europe)
 4. **Copy your connection string:**
-   - It looks like: `postgresql://username:password@host/database?sslmode=require`
+   - It looks like: `postgresql://neondb_owner:npg_8H1gPDvEARcd@ep-falling-wildflower-a86czkdn-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require`
    - Keep this secure - you'll need it!
 
 ### Option B: Command Line
@@ -52,7 +52,7 @@ git pull
 sudo apt-get install postgresql-client -y
 
 # Run the schema creation script
-psql "YOUR_CONNECTION_STRING" -f database/production-schema.sql
+psql "postgresql://neondb_owner:npg_8H1gPDvEARcd@ep-falling-wildflower-a86czkdn-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require" -f database/production-schema.sql
 ```
 
 Replace `YOUR_CONNECTION_STRING` with the connection string from Step 1.

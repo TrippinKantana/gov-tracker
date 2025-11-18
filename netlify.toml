@@ -1,0 +1,23 @@
+[build]
+  base = "frontend"
+  command = "npm install && npm run build"
+  publish = "frontend/dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Redirect all routes to index.html for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Optional: Proxy API requests to Railway backend
+# Uncomment and update with your Railway URL if you want to use relative /api paths
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://your-app.up.railway.app/api/:splat"
+#   status = 200
+#   force = true
+#   headers = {X-From = "Netlify"}
+
